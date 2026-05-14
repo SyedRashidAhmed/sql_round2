@@ -1,0 +1,56 @@
+WITH daily_attendance AS (
+    SELECT
+        resource_id,
+        date(created_time) AS work_date,
+
+        -- First login of the day
+        MIN(
+            CASE
+                WHEN is_clock_in = 1
+                THEN start_time
+            END
+        ) AS first_clock_in,
+
+        -- Last logout of the day
+        MAX(
+            CASE
+                WHEN is_clock_out = 1
+                THEN end_time
+            END
+        ) AS last_clock_out,
+
+        -- Sum only actual worked sessions
+        ROUND(
+            SUM(
+                (
+                    strftime('%s', end_time) -
+                    strftime('%s', start_time)
+                ) / 3600.0
+            ),
+            2
+        ) AS worked_hours
+
+    FROM test_de
+
+    WHERE
+        start_time IS NOT NULL
+        AND end_time IS NOT NULL
+
+    GROUP BY
+        resource_id,
+        date(created_time)
+)
+
+SELECT
+    work_date,
+    resource_id,
+    first_clock_in,
+    last_clock_out,
+    worked_hours
+
+FROM daily_attendance
+
+
+ORDER BY
+    work_date,
+    resource_id;
